@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>A Question For You 🌹</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  :root {
+    --coral:#D85A30; --coral-dark:#993C1D; --coral-light:#FAECE7;
+    --green:#1D9E75; --green-dark:#0F6E56;
+    --text:#1a1a18; --text-muted:#6b6b67;
+    --border:rgba(0,0,0,0.12); --bg:#fffdf9; --card:#ffffff; --radius:14px;
+  }
+  body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:0; }
+  body::before { content:''; position:fixed; inset:0; background-image:radial-gradient(circle at 15% 20%,rgba(216,90,48,.06) 0%,transparent 40%),radial-gradient(circle at 85% 75%,rgba(216,90,48,.05) 0%,transparent 40%); pointer-events:none; z-index:0; }
+
+  /* ══ SENDER EDITOR (only visible in ?edit mode) ══ */
+  #sender-ui { width:100%; display:none; flex-direction:column; align-items:center; position:relative; z-index:100; }
+  #sender-ui.visible { display:flex; }
+
+  #editor-bar { width:100%; background:#1a1a18; color:#fff; display:flex; align-items:center; justify-content:center; gap:10px; padding:10px 20px; font-size:.82rem; font-weight:500; flex-wrap:wrap; }
+  #editor-bar .bar-hint { color:#666; font-size:.74rem; }
+  .ed-btn { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.2); color:#fff; padding:5px 14px; border-radius:50px; font-size:.8rem; cursor:pointer; font-family:'DM Sans',sans-serif; transition:background .15s; }
+  .ed-btn:hover { background:rgba(255,255,255,.22); }
+  .ed-btn.active { background:var(--coral); border-color:var(--coral); }
+
+  .editor-panel { width:100%; max-width:700px; background:#fff; border:1px solid var(--border); border-radius:var(--radius); margin:.8rem auto 0; padding:1.4rem 1.6rem; display:none; flex-direction:column; gap:1.1rem; }
+  .editor-panel.open { display:flex; }
+
+  .ed-section-title { font-size:.7rem; font-weight:500; letter-spacing:.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; }
+  .ed-row { display:flex; flex-direction:column; gap:4px; }
+  .ed-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .ed-input { width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:8px; font-size:.9rem; font-family:'DM Sans',sans-serif; color:var(--text); background:#fafaf8; outline:none; transition:border-color .15s; }
+  .ed-input:focus { border-color:var(--coral); }
+  .photo-upload-area { border:2px dashed var(--border); border-radius:var(--radius); padding:1.2rem; text-align:center; cursor:pointer; transition:border-color .15s,background .15s; color:var(--text-muted); font-size:.88rem; }
+  .photo-upload-area:hover { border-color:var(--coral); background:var(--coral-light); }
+  .photo-upload-area input { display:none; }
+  #photo-preview { width:100%; max-height:160px; object-fit:cover; border-radius:10px; display:none; margin-top:8px; }
+  .remove-photo { background:none; border:none; color:var(--coral); font-size:.82rem; cursor:pointer; margin-top:4px; display:none; font-family:'DM Sans',sans-serif; }
+  .ed-apply-btn { background:var(--coral); border:none; color:#fff; padding:9px 24px; border-radius:50px; font-size:.9rem; font-family:'DM Sans',sans-serif; font-weight:500; cursor:pointer; align-self:flex-end; transition:background .15s; }
+  .ed-apply-btn:hover { background:var(--coral-dark); }
+
+  /* notification panel */
+  .notif-box { background:#fafaf8; border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.2rem; display:flex; flex-direction:column; gap:10px; }
+  .notif-method { display:flex; flex-direction:column; gap:6px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+  .notif-method:last-child { border-bottom:none; padding-bottom:0; }
+  .notif-method-header { display:flex; align-items:center; gap:8px; font-size:.88rem; font-weight:500; flex-wrap:wrap; }
+  .badge { font-size:.65rem; padding:2px 8px; border-radius:50px; font-weight:500; }
+  .badge-rec { background:#E1F5EE; color:#0F6E56; }
+  .badge-fb  { background:#FAF0E1; color:#854F0B; }
+  .notif-desc { font-size:.8rem; color:var(--text-muted); line-height:1.5; }
+  .notif-desc a { color:var(--coral); }
+  .notif-input-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .notif-input-row .ed-input { flex:1; min-width:160px; }
+  .test-btn { background:none; border:1px solid var(--border); color:var(--text-muted); padding:7px 14px; border-radius:8px; font-size:.82rem; cursor:pointer; white-space:nowrap; font-family:'DM Sans',sans-serif; transition:background .15s,border-color .15s,color .15s; }
+  .test-btn:hover { background:var(--coral-light); border-color:var(--coral); color:var(--coral-dark); }
+  .test-result { font-size:.8rem; margin-top:2px; min-height:1.2em; }
+
+  /* share link area */
+  .share-box { background:var(--coral-light); border:1px solid rgba(216,90,48,.25); border-radius:var(--radius); padding:1.1rem 1.3rem; display:flex; flex-direction:column; gap:8px; }
+  .share-box p { font-size:.88rem; color:var(--coral-dark); line-height:1.5; }
+  .share-link-row { display:flex; gap:8px; }
+  .share-link-row input { flex:1; background:#fff; border:1px solid rgba(216,90,48,.3); border-radius:8px; padding:7px 10px; font-size:.82rem; color:var(--text); font-family:'DM Sans',sans-serif; outline:none; }
+  .copy-btn { background:var(--coral); border:none; color:#fff; padding:7px 16px; border-radius:8px; font-size:.82rem; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:500; white-space:nowrap; transition:background .15s; }
+  .copy-btn:hover { background:var(--coral-dark); }
+
+  /* ══ MAIN STAGE (receiver sees only this) ══ */
+  #stage { width:100%; max-width:520px; padding:3rem 1.5rem 4rem; display:flex; align-items:center; justify-content:center; flex:1; position:relative; z-index:1; }
+  .page { display:none; flex-direction:column; align-items:center; text-align:center; width:100%; animation:riseIn .55s cubic-bezier(.22,1,.36,1) forwards; }
+  .page.active { display:flex; }
+  @keyframes riseIn { from{opacity:0;transform:translateY(24px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+  .hero-photo { width:130px; height:130px; border-radius:50%; object-fit:cover; border:3px solid var(--coral-light); margin-bottom:1.4rem; display:none; }
+  .hero-emoji { font-size:3.8rem; margin-bottom:1rem; display:block; line-height:1; }
+  h1.title { font-family:'Fraunces',serif; font-size:clamp(1.9rem,5vw,2.6rem); font-weight:700; line-height:1.18; color:var(--text); margin-bottom:.5rem; }
+  p.subtitle { font-size:1rem; color:var(--text-muted); font-weight:300; margin-bottom:2rem; line-height:1.55; }
+
+  .btn { font-family:'DM Sans',sans-serif; font-size:1rem; font-weight:500; padding:.8rem 2.4rem; border-radius:50px; cursor:pointer; border:1.5px solid transparent; transition:transform .15s,background .15s,border-color .15s; }
+  .btn:active { transform:scale(.96); }
+  .btn-yes { background:var(--coral); border-color:var(--coral); color:#fff; }
+  .btn-yes:hover { background:var(--coral-dark); border-color:var(--coral-dark); }
+  .btn-no { background:transparent; border:1.5px solid var(--border); color:var(--text-muted); position:absolute; white-space:nowrap; pointer-events:auto; z-index:10; }
+  .btn-ok { background:var(--green); border-color:var(--green); color:#fff; margin-top:1.2rem; }
+  .btn-ok:hover { background:var(--green-dark); }
+  .btns-row { display:flex; gap:1rem; position:relative; height:60px; align-items:center; justify-content:center; width:100%; overflow:visible; }
+
+  .field-group { width:100%; margin-bottom:1.1rem; display:flex; flex-direction:column; text-align:left; }
+  .field-label { font-size:.72rem; font-weight:500; letter-spacing:.09em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px; }
+  .styled-input { width:100%; padding:.75rem 1rem; font-size:1rem; font-family:'DM Sans',sans-serif; border:1.5px solid var(--border); border-radius:var(--radius); background:var(--card); color:var(--text); appearance:none; -webkit-appearance:none; outline:none; cursor:pointer; transition:border-color .15s; }
+  .styled-input:focus { border-color:var(--coral); }
+
+  .food-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; margin-bottom:1.5rem; }
+  .food-card { border:1.5px solid var(--border); border-radius:var(--radius); padding:1rem .5rem .85rem; cursor:pointer; background:var(--card); transition:border-color .15s,background .15s,transform .12s; display:flex; flex-direction:column; align-items:center; gap:6px; font-size:.85rem; color:var(--text); font-weight:400; user-select:none; }
+  .food-card:hover { border-color:var(--coral); background:var(--coral-light); transform:translateY(-2px); }
+  .food-card.selected { border-color:var(--coral); background:var(--coral-light); color:var(--coral-dark); font-weight:500; }
+  .food-emoji { font-size:1.9rem; line-height:1; }
+
+  .btn-confirm { background:var(--coral); border:none; color:#fff; padding:.85rem 2.6rem; border-radius:50px; font-size:1rem; font-family:'DM Sans',sans-serif; font-weight:500; cursor:pointer; margin-top:.5rem; transition:background .15s,transform .12s; }
+  .btn-confirm:hover { background:var(--coral-dark); }
+  .btn-confirm:active { transform:scale(.97); }
+
+  .confetti { font-size:2.2rem; letter-spacing:6px; margin-bottom:.8rem; }
+  .final-detail { font-size:1.05rem; color:var(--text-muted); margin-top:.4rem; line-height:1.5; }
+  .final-detail strong { color:var(--coral); font-weight:500; }
+  .tag { display:inline-block; background:var(--coral-light); color:var(--coral-dark); border-radius:50px; padding:.3rem .9rem; font-size:.88rem; margin:.25rem; font-weight:500; }
+
+  /* notification sent indicator (invisible to receiver, just a dot) */
+  #notif-sent { display:none; }
+
+  /* fallback modal */
+  #fallback-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:200; display:none; align-items:center; justify-content:center; padding:1rem; }
+  #fallback-overlay.open { display:flex; }
+  #fallback-modal { background:#fff; border-radius:var(--radius); padding:1.8rem; max-width:400px; width:100%; display:flex; flex-direction:column; gap:1rem; }
+  #fallback-modal h2 { font-family:'Fraunces',serif; font-size:1.3rem; font-weight:700; }
+  #fallback-modal p { font-size:.88rem; color:var(--text-muted); line-height:1.5; }
+  .fb-opt { border:1.5px solid var(--border); border-radius:var(--radius); padding:.9rem 1rem; cursor:pointer; transition:border-color .15s,background .15s; display:flex; flex-direction:column; gap:3px; }
+  .fb-opt:hover { border-color:var(--coral); background:var(--coral-light); }
+  .fb-opt strong { font-size:.9rem; }
+  .fb-opt span { font-size:.78rem; color:var(--text-muted); }
+  .fb-close { background:none; border:none; color:var(--text-muted); font-size:.82rem; cursor:pointer; align-self:center; font-family:'DM Sans',sans-serif; }
+
+  @media(max-width:480px){ .ed-grid{grid-template-columns:1fr} .food-grid{gap:8px} .food-card{padding:.75rem .3rem;font-size:.78rem} .food-emoji{font-size:1.5rem} h1.title{font-size:1.75rem} }
+</style>
+</head>
+<body>
+
+<!-- ══ SENDER UI — only shown when ?edit in URL ══ -->
+<div id="sender-ui">
+  <div id="editor-bar">
+    <span>✏️ Sender setup</span>
+    <button class="ed-btn" id="btn-text" onclick="togglePanel('panel-text','btn-text')">Edit text &amp; photo</button>
+    <button class="ed-btn" id="btn-notif" onclick="togglePanel('panel-notif','btn-notif')">🔔 Notification settings</button>
+    <button class="ed-btn" id="btn-share" onclick="togglePanel('panel-share','btn-share')">🔗 Get shareable link</button>
+    <span class="bar-hint">| this bar is hidden from your date</span>
+  </div>
+
+  <!-- Text & Photo panel -->
+  <div class="editor-panel" id="panel-text" style="max-width:700px">
+    <div class="ed-section-title">📸 Your photo (optional — shows on page 1)</div>
+    <div class="photo-upload-area" onclick="document.getElementById('photo-file').click()">
+      <div>Click to upload a photo 🖼️</div>
+      <input type="file" id="photo-file" accept="image/*" onchange="handlePhoto(event)" />
+      <img id="photo-preview" alt="preview" />
+      <br/>
+      <button class="remove-photo" id="remove-photo-btn" onclick="removePhoto(event)">✕ Remove photo</button>
+    </div>
+    <div class="ed-grid">
+      <div class="ed-row">
+        <div class="ed-section-title">Page 1 — the big question</div>
+        <input class="ed-input" id="ed-p1-title" placeholder="Will you go out with me?" />
+        <input class="ed-input" id="ed-p1-sub" placeholder="No pressure. (There's a little pressure.)" />
+      </div>
+      <div class="ed-row">
+        <div class="ed-section-title">Page 2 — reaction</div>
+        <input class="ed-input" id="ed-p2-title" placeholder="Wait — you actually said yes??" />
+        <input class="ed-input" id="ed-p2-sub" placeholder="I was ready for you to say no..." />
+      </div>
+      <div class="ed-row">
+        <div class="ed-section-title">Page 3 — scheduling</div>
+        <input class="ed-input" id="ed-p3-title" placeholder="So.. when are you free?" />
+        <input class="ed-input" id="ed-p3-sub" placeholder="Pick a day that works for you." />
+      </div>
+      <div class="ed-row">
+        <div class="ed-section-title">Page 4 — food vibes</div>
+        <input class="ed-input" id="ed-p4-title" placeholder="What are we feeling?" />
+        <input class="ed-input" id="ed-p4-sub" placeholder="Pick one (or two, I won't judge)." />
+      </div>
+      <div class="ed-row">
+        <div class="ed-section-title">Page 5 — final message</div>
+        <input class="ed-input" id="ed-p5-title" placeholder="Glad you didn't say no." />
+        <input class="ed-input" id="ed-p5-sub" placeholder="See you soon 🌹" />
+      </div>
+    </div>
+    <button class="ed-apply-btn" onclick="applyEdits()">Apply changes ✓</button>
+  </div>
+
+  <!-- Notification settings panel -->
+  <div class="editor-panel" id="panel-notif" style="max-width:700px">
+    <div class="ed-section-title">🔔 How should we notify YOU when your date fills out the form?</div>
+    <p style="font-size:.85rem;color:var(--text-muted);line-height:1.6">When they reach the last page, we silently send you all the date details. Set up your preferred method — multiple can be active at once as backups.</p>
+
+    <div class="notif-box">
+      <!-- Gmail MCP -->
+      <div class="notif-method">
+        <div class="notif-method-header">📧 Gmail <span class="badge badge-rec">Recommended</span></div>
+        <div class="notif-desc">Sends via your Gmail connection from Claude.ai. Works when you open this page through Claude.ai.</div>
+        <div class="notif-input-row">
+          <input class="ed-input" id="notif-gmail-to" placeholder="Your email e.g. mayauner6@gmail.com" value="mayauner6@gmail.com" />
+          <button class="test-btn" onclick="testGmail()">Send test ↗</button>
+        </div>
+        <div class="test-result" id="gmail-test-result"></div>
+      </div>
+
+      <!-- EmailJS -->
+      <div class="notif-method">
+        <div class="notif-method-header">📬 EmailJS <span class="badge badge-fb">Free fallback</span></div>
+        <div class="notif-desc">Works from any browser — no backend. Setup: <a href="https://www.emailjs.com" target="_blank">emailjs.com</a> → free account → connect Gmail → create template → paste IDs below.</div>
+        <div class="notif-input-row">
+          <input class="ed-input" id="notif-ejs-service" placeholder="Service ID" />
+          <input class="ed-input" id="notif-ejs-template" placeholder="Template ID" />
+          <input class="ed-input" id="notif-ejs-key" placeholder="Public Key" />
+        </div>
+        <div class="notif-input-row">
+          <input class="ed-input" id="notif-ejs-to" placeholder="Your email for notifications" value="mayauner6@gmail.com" />
+          <button class="test-btn" onclick="testEmailJS()">Send test ↗</button>
+        </div>
+        <div class="test-result" id="ejs-test-result"></div>
+      </div>
+
+      <!-- Clipboard fallback -->
+      <div class="notif-method">
+        <div class="notif-method-header">📋 Clipboard popup <span class="badge badge-fb">Always works</span></div>
+        <div class="notif-desc">If the above fail, a hidden popup offers to copy / mailto / WhatsApp the details silently. The receiver won't see it — it only fires notifications to you.</div>
+      </div>
+    </div>
+    <button class="ed-apply-btn" onclick="saveNotif()">Save settings ✓</button>
+  </div>
+
+  <!-- Share link panel -->
+  <div class="editor-panel" id="panel-share" style="max-width:700px">
+    <div class="share-box">
+      <p>✅ <strong>You're all set!</strong> Share the link below with your date. They'll see a clean page with no editor bar — just the fun flow.</p>
+      <p style="font-size:.82rem">The link below points to this same file, but <em>without</em> <code>?edit</code> — so the editor is invisible to them.</p>
+      <div class="share-link-row">
+        <input type="text" id="share-link-input" readonly />
+        <button class="copy-btn" onclick="copyShareLink()">Copy link</button>
+      </div>
+      <p style="font-size:.78rem;color:var(--coral-dark)">💡 To host this file, upload it to any static host (GitHub Pages, Netlify, Google Drive public link, etc.) and share that URL.</p>
+    </div>
+  </div>
+</div>
+<!-- end sender-ui -->
+
+<!-- ══ STAGE — what the receiver sees ══ -->
+<div id="stage">
+
+  <!-- PAGE 1 -->
+  <div class="page active" id="p1">
+    <img id="hero-photo" class="hero-photo" alt="" />
+    <span class="hero-emoji" id="p1-emoji">🌹</span>
+    <h1 class="title" id="p1-title">Will you go out with me?</h1>
+    <p class="subtitle" id="p1-sub">No pressure. (There's a little pressure.)</p>
+    <div class="btns-row" id="btns-row">
+      <button class="btn btn-yes" onclick="goTo('p2')">Yes ✨</button>
+      <button class="btn btn-no" id="no-btn">No</button>
+    </div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="page" id="p2">
+    <span class="hero-emoji">😳</span>
+    <h1 class="title" id="p2-title">Wait — you actually said yes??</h1>
+    <p class="subtitle" id="p2-sub">I was fully ready for you to say no. Like, I had a whole speech prepared.</p>
+    <button class="btn btn-ok" onclick="goTo('p3')">Okay okay 😅</button>
+  </div>
+
+  <!-- PAGE 3 -->
+  <div class="page" id="p3">
+    <span class="hero-emoji">📅</span>
+    <h1 class="title" id="p3-title">So.. when are you free?</h1>
+    <p class="subtitle" id="p3-sub">Pick a day that works for you.</p>
+    <div class="field-group">
+      <span class="field-label">Pick a day</span>
+      <input type="date" class="styled-input" id="date-input" />
+    </div>
+    <div class="field-group">
+      <span class="field-label">What time?</span>
+      <select class="styled-input" id="time-input">
+        <option value="">— pick a time —</option>
+        <option>11:00 AM</option><option>12:00 PM (noon)</option><option>1:00 PM</option>
+        <option>2:00 PM</option><option>5:00 PM</option><option>6:00 PM</option>
+        <option>7:00 PM</option><option>7:30 PM</option><option>8:00 PM</option>
+        <option>8:30 PM</option><option>9:00 PM</option>
+      </select>
+    </div>
+    <button class="btn-confirm" onclick="goToFood()">Next →</button>
+  </div>
+
+  <!-- PAGE 4 -->
+  <div class="page" id="p4">
+    <span class="hero-emoji">🍜</span>
+    <h1 class="title" id="p4-title">What are we feeling?</h1>
+    <p class="subtitle" id="p4-sub">Pick one (or two, I won't judge).</p>
+    <div class="food-grid">
+      <div class="food-card" onclick="toggleFood(this)" data-food="Ramen"><span class="food-emoji">🍜</span>Ramen</div>
+      <div class="food-card" onclick="toggleFood(this)" data-food="Burgers"><span class="food-emoji">🍔</span>Burgers</div>
+      <div class="food-card" onclick="toggleFood(this)" data-food="Sushi"><span class="food-emoji">🍣</span>Sushi</div>
+      <div class="food-card" onclick="toggleFood(this)" data-food="Pizza"><span class="food-emoji">🍕</span>Pizza</div>
+      <div class="food-card" onclick="toggleFood(this)" data-food="Tacos"><span class="food-emoji">🌮</span>Tacos</div>
+      <div class="food-card" onclick="toggleFood(this)" data-food="Pasta"><span class="food-emoji">🍝</span>Pasta</div>
+      <div class="food-card" onclick="toggleFood(this)" data-food="Steakhouse"><span class="food-emoji">🥩</span>Steakhouse</div>
+      <div class="food-card" onclick="toggleFood(this)" data-food="Dessert bar"><span class="food-emoji">🧁</span>Dessert bar</div>
+      <div class="food-card" onclick="toggleFood(this)" data-food="Surprise me"><span class="food-emoji">🎲</span>Surprise me</div>
+    </div>
+    <button class="btn-confirm" onclick="goToFinal()">Lock it in 🔒</button>
+  </div>
+
+  <!-- PAGE 5 — receiver sees this, sender gets notified silently -->
+  <div class="page" id="p5">
+    <div class="confetti">🎉✨💌</div>
+    <h1 class="title" id="p5-title">Glad you didn't say no.</h1>
+    <p class="final-detail">Be ready by <strong id="final-time">—</strong></p>
+    <p class="final-detail">on <strong id="final-date">—</strong></p>
+    <div style="margin-top:1rem" id="final-foods"></div>
+    <p class="final-detail" style="margin-top:1.4rem;font-size:.9rem" id="p5-sub">See you soon 🌹</p>
+    <!-- silent notif indicator, hidden from view -->
+    <div id="notif-sent"></div>
+  </div>
+
+</div><!-- /stage -->
+
+<!-- fallback modal — pops up silently (invisible to receiver visually, only fires action) -->
+<div id="fallback-overlay">
+  <div id="fallback-modal">
+    <h2>Send yourself the details 📬</h2>
+    <p>Auto-email didn't go through — pick a way to save the date info:</p>
+    <div class="fb-opt" onclick="doMailto()">
+      <strong>📧 Open email app</strong>
+      <span>Pre-fills subject &amp; body — just hit send</span>
+    </div>
+    <div class="fb-opt" onclick="doWhatsApp()">
+      <strong>💬 WhatsApp</strong>
+      <span>Opens WhatsApp Web with details ready</span>
+    </div>
+    <div class="fb-opt" onclick="doCopy()">
+      <strong>📋 Copy to clipboard</strong>
+      <span>Paste anywhere</span>
+    </div>
+    <button class="fb-close" onclick="closeFB()">Dismiss</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+// ══ SENDER vs RECEIVER MODE ══
+// Sender opens: file.html?edit
+// Receiver opens: file.html  (no ?edit → editor never appears)
+const isSender = location.search.includes('edit');
+if (isSender) {
+  document.getElementById('sender-ui').classList.add('visible');
+  // populate share link (same URL without ?edit)
+  const clean = location.href.replace(/[?&]edit/,'');
+  document.getElementById('share-link-input').value = clean;
+}
+
+// ══ NOTIFICATION CONFIG (persisted in localStorage so it survives page reload) ══
+let cfg = JSON.parse(localStorage.getItem('datepage-cfg') || '{}');
+cfg.gmailTo    = cfg.gmailTo    || 'mayauner6@gmail.com';
+cfg.ejsService = cfg.ejsService || '';
+cfg.ejsTemplate= cfg.ejsTemplate|| '';
+cfg.ejsKey     = cfg.ejsKey     || '';
+cfg.ejsTo      = cfg.ejsTo      || 'mayauner6@gmail.com';
+
+// pre-fill notif inputs if sender
+if (isSender) {
+  document.getElementById('notif-gmail-to').value  = cfg.gmailTo;
+  document.getElementById('notif-ejs-service').value  = cfg.ejsService;
+  document.getElementById('notif-ejs-template').value = cfg.ejsTemplate;
+  document.getElementById('notif-ejs-key').value      = cfg.ejsKey;
+  document.getElementById('notif-ejs-to').value       = cfg.ejsTo;
+}
+
+// ══ NAVIGATION ══
+function goTo(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.style.animation='none';
+  requestAnimationFrame(()=>{ el.style.animation=''; });
+}
+
+function goToFood() {
+  if (!document.getElementById('date-input').value || !document.getElementById('time-input').value) {
+    alert('Please pick a day and a time! 📅'); return;
+  }
+  goTo('p4');
+}
+
+let dateStr='', timeStr='', foodList=[];
+
+function goToFinal() {
+  const selected = Array.from(document.querySelectorAll('.food-card.selected')).map(c=>c.dataset.food);
+  if (!selected.length) { alert('Pick at least one vibe! 🍜'); return; }
+
+  const rawDate = document.getElementById('date-input').value;
+  timeStr = document.getElementById('time-input').value;
+  const d = new Date(rawDate+'T12:00:00');
+  dateStr = d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  foodList = selected;
+
+  document.getElementById('final-time').textContent = timeStr;
+  document.getElementById('final-date').textContent = dateStr;
+  document.getElementById('final-foods').innerHTML = foodList.map(f=>`<span class="tag">${f}</span>`).join('');
+  goTo('p5');
+
+  // fire silent notification to sender
+  sendSenderNotification();
+}
+
+function toggleFood(el) { el.classList.toggle('selected'); }
+
+// ══ FLEEING NO BUTTON ══
+const noBtn = document.getElementById('no-btn');
+const row   = document.getElementById('btns-row');
+noBtn.style.position='absolute'; noBtn.style.left='220px'; noBtn.style.top='0px';
+row.addEventListener('mousemove', e => {
+  const rr=row.getBoundingClientRect();
+  const mx=e.clientX-rr.left, my=e.clientY-rr.top;
+  const bx=noBtn.offsetLeft+noBtn.offsetWidth/2, by=noBtn.offsetTop+noBtn.offsetHeight/2;
+  const dx=mx-bx, dy=my-by, dist=Math.sqrt(dx*dx+dy*dy);
+  if (dist<95) {
+    const a=Math.atan2(dy,dx);
+    let nx=noBtn.offsetLeft-Math.cos(a)*115;
+    let ny=noBtn.offsetTop-Math.sin(a)*115;
+    nx=Math.max(0,Math.min(row.offsetWidth-noBtn.offsetWidth,nx));
+    ny=Math.max(-22,Math.min(22,ny));
+    noBtn.style.left=nx+'px'; noBtn.style.top=ny+'px';
+  }
+});
+noBtn.addEventListener('click',e=>e.preventDefault());
+
+// ══ SILENT NOTIFICATION TO SENDER ══
+function buildMsg() {
+  return `🌹 Your date is set!\n\nDate: ${dateStr}\nTime: ${timeStr}\nFood: ${foodList.join(', ')}\n\nThey said yes! 💌`;
+}
+
+async function sendSenderNotification() {
+  // Try 1: Gmail MCP
+  if (cfg.gmailTo) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:'claude-sonnet-4-20250514',
+          max_tokens:800,
+          messages:[{role:'user',content:
+            `Send an email to ${cfg.gmailTo} with subject "🌹 Date confirmed!" and this body:\n\n${buildMsg()}`
+          }],
+          mcp_servers:[{type:'url',url:'https://gmailmcp.googleapis.com/mcp/v1',name:'gmail-mcp'}]
+        })
+      });
+      if (res.ok) { console.log('✅ Gmail notification sent'); return; }
+    } catch(e) { console.warn('Gmail MCP failed',e); }
+  }
+
+  // Try 2: EmailJS
+  if (cfg.ejsService && cfg.ejsTemplate && cfg.ejsKey) {
+    try {
+      emailjs.init({publicKey: cfg.ejsKey});
+      await emailjs.send(cfg.ejsService, cfg.ejsTemplate, {
+        to_email: cfg.ejsTo || cfg.gmailTo,
+        date: dateStr, time: timeStr, foods: foodList.join(', '),
+        message: buildMsg()
+      });
+      console.log('✅ EmailJS notification sent'); return;
+    } catch(e) { console.warn('EmailJS failed',e); }
+  }
+
+  // Try 3: show fallback modal (only visible if sender is also viewing — in normal use receiver just sees the pretty page)
+  document.getElementById('fallback-overlay').classList.add('open');
+}
+
+// ══ FALLBACK ACTIONS ══
+function doMailto() {
+  window.open(`mailto:${cfg.gmailTo}?subject=${encodeURIComponent('🌹 Date confirmed!')}&body=${encodeURIComponent(buildMsg())}`);
+  closeFB();
+}
+function doWhatsApp() {
+  window.open('https://wa.me/?text='+encodeURIComponent(buildMsg()));
+  closeFB();
+}
+function doCopy() {
+  navigator.clipboard.writeText(buildMsg()).then(()=>{ alert('Copied!'); closeFB(); });
+}
+function closeFB() { document.getElementById('fallback-overlay').classList.remove('open'); }
+
+// ══ SENDER EDITOR PANELS ══
+function togglePanel(panelId, btnId) {
+  const panels = ['panel-text','panel-notif','panel-share'];
+  const btns   = ['btn-text','btn-notif','btn-share'];
+  panels.forEach((p,i) => {
+    const el = document.getElementById(p);
+    const isTarget = p === panelId;
+    const wasOpen = el.classList.contains('open');
+    el.classList.toggle('open', isTarget && !wasOpen);
+    document.getElementById(btns[i]).classList.toggle('active', isTarget && !wasOpen);
+  });
+}
+
+function applyEdits() {
+  const get = id => document.getElementById(id).value.trim();
+  const set = (elId, val) => { if(val) document.getElementById(elId).textContent = val; };
+  set('p1-title',get('ed-p1-title')); set('p1-sub',get('ed-p1-sub'));
+  set('p2-title',get('ed-p2-title')); set('p2-sub',get('ed-p2-sub'));
+  set('p3-title',get('ed-p3-title')); set('p3-sub',get('ed-p3-sub'));
+  set('p4-title',get('ed-p4-title')); set('p4-sub',get('ed-p4-sub'));
+  set('p5-title',get('ed-p5-title')); set('p5-sub',get('ed-p5-sub'));
+  document.getElementById('panel-text').classList.remove('open');
+  document.getElementById('btn-text').classList.remove('active');
+}
+
+function saveNotif() {
+  cfg.gmailTo     = document.getElementById('notif-gmail-to').value.trim();
+  cfg.ejsService  = document.getElementById('notif-ejs-service').value.trim();
+  cfg.ejsTemplate = document.getElementById('notif-ejs-template').value.trim();
+  cfg.ejsKey      = document.getElementById('notif-ejs-key').value.trim();
+  cfg.ejsTo       = document.getElementById('notif-ejs-to').value.trim();
+  localStorage.setItem('datepage-cfg', JSON.stringify(cfg));
+  document.getElementById('panel-notif').classList.remove('open');
+  document.getElementById('btn-notif').classList.remove('active');
+  alert('✅ Notification settings saved!');
+}
+
+async function testGmail() {
+  const to = document.getElementById('notif-gmail-to').value.trim();
+  const r  = document.getElementById('gmail-test-result');
+  if (!to) { r.textContent='Enter your email first.'; r.style.color='var(--coral)'; return; }
+  r.textContent='Sending test...'; r.style.color='var(--text-muted)';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:300,
+        messages:[{role:'user',content:`Send a short test email to ${to} with subject "🌹 Test — date page is working!" and body "Your date request page notifications are set up correctly. 🎉"`}],
+        mcp_servers:[{type:'url',url:'https://gmailmcp.googleapis.com/mcp/v1',name:'gmail-mcp'}]
+      })
+    });
+    if (res.ok) { r.textContent='✅ Test sent! Check your inbox.'; r.style.color='var(--green)'; }
+    else throw new Error(res.status);
+  } catch(e) { r.textContent='⚠️ Gmail MCP unavailable — try EmailJS as backup.'; r.style.color='var(--coral)'; }
+}
+
+async function testEmailJS() {
+  const svc = document.getElementById('notif-ejs-service').value.trim();
+  const tpl = document.getElementById('notif-ejs-template').value.trim();
+  const key = document.getElementById('notif-ejs-key').value.trim();
+  const to  = document.getElementById('notif-ejs-to').value.trim();
+  const r   = document.getElementById('ejs-test-result');
+  if (!svc||!tpl||!key) { r.textContent='Fill in Service ID, Template ID and Public Key first.'; r.style.color='var(--coral)'; return; }
+  r.textContent='Sending test...'; r.style.color='var(--text-muted)';
+  try {
+    emailjs.init({publicKey:key});
+    await emailjs.send(svc, tpl, {to_email:to, date:'Test', time:'Test', foods:'Ramen', message:'Test from your date page 🌹'});
+    r.textContent='✅ Test sent via EmailJS!'; r.style.color='var(--green)';
+  } catch(e) { r.textContent='⚠️ EmailJS error: '+(e.text||e.message)+' — check your IDs.'; r.style.color='var(--coral)'; }
+}
+
+function copyShareLink() {
+  const val = document.getElementById('share-link-input').value;
+  navigator.clipboard.writeText(val).then(()=>{ alert('Link copied! Send it to your date 💌'); });
+}
+
+// ══ PHOTO UPLOAD ══
+function handlePhoto(e) {
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const src=ev.target.result;
+    document.getElementById('photo-preview').src=src;
+    document.getElementById('photo-preview').style.display='block';
+    document.getElementById('hero-photo').src=src;
+    document.getElementById('hero-photo').style.display='block';
+    document.getElementById('p1-emoji').style.display='none';
+    document.getElementById('remove-photo-btn').style.display='inline-block';
+  };
+  reader.readAsDataURL(file);
+}
+function removePhoto(e) {
+  e.stopPropagation();
+  document.getElementById('photo-preview').style.display='none';
+  document.getElementById('hero-photo').style.display='none';
+  document.getElementById('p1-emoji').style.display='block';
+  document.getElementById('remove-photo-btn').style.display='none';
+  document.getElementById('photo-file').value='';
+}
+</script>
+</body>
+</html>
